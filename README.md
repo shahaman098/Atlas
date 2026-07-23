@@ -1,38 +1,65 @@
-# Local Browser Use Agent
+# Atlas — Local Browser Use Agent
 
-Reproducible local Browser Use automation for a 16 GB M1 Pro Mac using Ollama-hosted open models.
+Personal, local-first browser automation on a 16 GB Apple Silicon Mac using Browser Use + Ollama open models.
 
-Runtime path:
+## End goal
+
+A **reliable supervised browser agent** that runs on the owner's machine, uses **open-weight models**, and can complete short real web tasks without handing control to proprietary cloud LLMs or the owner's signed-in Chrome profile.
+
+In practice that means:
+
+- You describe a constrained task.
+- An isolated Chromium session exposes DOM/accessibility state.
+- A local open model chooses **one action per step**.
+- The run stays domain-locked, supervised, and reviewable.
+- Results are measurable (benchmark CSV + clear success/failure).
+
+**Not the goal:** an unattended general web agent, shopping/payment bot, or anything that silently uses your normal logged-in browser.
+
+## Goals
+
+### Now
+
+- Keep a reproducible clone → install → run path across machines and Cursor sessions.
+- Stay DOM-only (`use_vision=False`) until the baseline is stable.
+- Fit a 16 GB Mac: conservative context, one model loaded, recover when Ollama wedges.
+- Pass the acceptance gate: **≥12 successful runs out of 15** for the chosen local model, with no form submits, downloads, sign-ins, or uncontrolled navigation.
+- Prefer `qwen3.5:9b`; fall back to `llama3.1:8b` only if measurements say so.
+
+### Next
+
+- Add a small pack of personal, domain-locked supervised tasks once the benchmark is green.
+- Optionally enable vision for canvas/maps/poor-accessibility pages after DOM acceptance.
+- If both local models fail acceptance, keep the browser local and move inference to a remote open-weight OpenAI-compatible endpoint (e.g. vLLM).
+
+### Always
+
+- Open-model-first.
+- Human-supervised for real workflows.
+- Explicit allowed domains + forbidden actions on every task.
+- No irreversible actions without manual review.
+
+## Runtime path
 
 ```text
 Python Browser Use agent
--> isolated Chromium session
--> DOM/accessibility-tree browser state
+-> isolated headless Chromium
+-> DOM / accessibility-tree browser state
 -> local Ollama model
 -> one browser action per step
 -> supervised, short, domain-constrained tasks
 ```
 
-DOM-only is the default. Screenshots / vision stay disabled until the baseline benchmark is stable.
-
 ## Docs for humans and Cursor agents
 
 | Doc | Purpose |
 | --- | --- |
-| [AGENTS.md](AGENTS.md) | **Start here in Cursor** — project context, constraints, layout, lessons learned |
+| [AGENTS.md](AGENTS.md) | **Start here in Cursor** — end goal, milestones, constraints, layout, lessons |
 | [README.md](README.md) | Setup, run, benchmark, troubleshooting |
-| [CURSOR_IMPLEMENTATION_PLAN.md](CURSOR_IMPLEMENTATION_PLAN.md) | Original phased plan and acceptance gate |
+| [CURSOR_IMPLEMENTATION_PLAN.md](CURSOR_IMPLEMENTATION_PLAN.md) | Phased plan and acceptance details |
 | [.cursor/rules/](.cursor/rules/) | Always-on Cursor rules for this repo |
 
 On a new Cursor machine: clone → open folder → agent should load `AGENTS.md` + `.cursor/rules` automatically.
-
-## Goals
-
-- Start DOM-first (`use_vision=False`).
-- Use one action per step.
-- Keep the first model choice conservative.
-- Run in an isolated browser session by default.
-- Treat real workflows as supervised, not unattended production automation.
 
 ## Recommended setup
 
@@ -117,7 +144,7 @@ OLLAMA_MODEL=llama3.1:8b OLLAMA_NUM_CTX=4096 uv run python main.py
 
 Selection logic:
 
-- Prefer `qwen3.5:9b` when it completes cleanly (it correctly solved `example.com` in baseline testing).
+- Prefer `qwen3.5:9b` when it completes cleanly.
 - Prefer `llama3.1:8b` only if Qwen repeatedly times out, wedges Ollama, or produces malformed actions — and still verify the final answer; Llama can hallucinate off-task content under pressure.
 - Close other heavy apps before benchmarks; a 16 GB Mac can swap hard with Chromium + a 9B model loaded.
 
@@ -146,7 +173,13 @@ Smoke one cheap task:
 BENCHMARK_MODELS=qwen3.5:9b BENCHMARK_TASK_IDS=1 BENCHMARK_REPEATS=1 uv run python scripts/benchmark.py
 ```
 
-Acceptance gate (from the plan): the chosen model should reach at least 12 successful runs out of 15 attempts, with no form submissions, downloads, sign-ins, or uncontrolled navigation.
+Summarize:
+
+```bash
+uv run python scripts/summarize_benchmark.py
+```
+
+Acceptance gate: the chosen model should reach at least **12 successful runs out of 15**, with no form submissions, downloads, sign-ins, or uncontrolled navigation.
 
 ## Safety
 

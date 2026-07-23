@@ -4,6 +4,20 @@
 
 Build a reproducible local Browser Use automation project for a 16 GB M1 Pro Mac using Ollama-hosted open models.
 
+## End goal
+
+A personal, local-first, open-model browser agent that can reliably complete short supervised web tasks on consumer Apple Silicon hardware without depending on proprietary cloud LLMs or the owner's signed-in Chrome profile.
+
+Success looks like: clone → run → constrained task → trusted result, with measured benchmark quality (≥12/15) and hard safety rails.
+
+## Goals this plan serves
+
+- Own the full local loop: task → DOM state → open model → one action → result.
+- Stay useful on 16 GB unified memory.
+- Prove reliability with a fixed DOM benchmark before personal workflows or vision.
+- Keep the operator supervised and domain-locked.
+- Preserve an open-model path even if inference later moves to a remote open-weight server.
+
 The intended runtime path is:
 
 ```text

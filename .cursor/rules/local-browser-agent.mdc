@@ -1,12 +1,24 @@
 ---
-description: Core constraints for the local Browser Use + Ollama agent
+description: End goal, milestones, and hard constraints for Atlas
 alwaysApply: true
 ---
 
-# Local browser agent rules
+# Atlas — local browser agent
 
-- Read `AGENTS.md` first for project context on a new machine.
-- Keep DOM-only defaults: `use_vision=False`, one action per step, isolated headless Chromium.
+## End goal
+
+Build a personal, local-first, open-model browser agent that reliably completes short supervised web tasks on a 16 GB Apple Silicon Mac without proprietary cloud LLMs or the user's signed-in Chrome profile.
+
+## Current priorities
+
+1. Keep DOM-only baseline reliable (`main.py` smoke + benchmark acceptance ≥12/15).
+2. Preserve 16 GB-safe defaults and Ollama recovery.
+3. Only then add personal domain-locked tasks, optional vision, or remote open-weight inference fallback.
+
+## Hard rules
+
+- Read `AGENTS.md` first on a new machine.
+- Keep `use_vision=False`, one action per step, isolated headless Chromium.
 - Do not connect the user's normal Chrome profile unless explicitly requested.
 - Prefer editing shared runtime via `ollama_runtime.py` (`create_agent`, `create_browser`, `create_llm`).
 - Browser Use `0.13.6`: use `ollama_options={"num_ctx": N, "num_predict": 768}`; never pass `num_ctx=` to `ChatOllama`.
@@ -16,3 +28,4 @@ alwaysApply: true
 - Do not add DuckDuckGo/SERP multi-hop tasks without validating local-model reliability.
 - Do not enable payments, credentials, destructive account actions, or unattended high-impact automation.
 - Keep Ollama bound to localhost; restart/unload helpers exist for wedged API states.
+- Optimize for correctness before speed on the benchmark path.
