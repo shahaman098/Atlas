@@ -13,7 +13,8 @@ Build a personal, local-first, open-model browser agent that reliably completes 
 
 1. Keep DOM-only baseline reliable (`main.py` smoke + benchmark acceptance ≥12/15).
 2. Preserve 16 GB-safe defaults and Ollama recovery.
-3. Only then add personal domain-locked tasks, optional vision, or remote open-weight inference fallback.
+3. Keep bootstrap/doctor scripts working so new machines can obtain non-git resources.
+4. Only then add personal domain-locked tasks, optional vision, or remote open-weight inference fallback.
 
 ## Hard rules
 

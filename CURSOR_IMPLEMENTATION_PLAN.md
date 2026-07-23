@@ -68,6 +68,8 @@ Create this minimal project structure:
 ├── ollama_runtime.py
 ├── pyproject.toml
 └── scripts/
+    ├── bootstrap.sh
+    ├── doctor.sh
     ├── benchmark.py
     ├── check_ollama.sh
     └── summarize_benchmark.py

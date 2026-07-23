@@ -61,16 +61,64 @@ Python Browser Use agent
 
 On a new Cursor machine: clone → open folder → agent should load `AGENTS.md` + `.cursor/rules` automatically.
 
-## Recommended setup
+## Resources another machine needs
 
-Install the tools:
+These are **not** committed in git (too large / machine-local). A fresh clone must obtain them:
+
+| Resource | Why | Approx size |
+| --- | --- | --- |
+| Homebrew | Installs `uv` + Ollama on macOS | small |
+| `uv` + Python 3.12 | Project env / deps | small |
+| Ollama app + local API | Runs open models on `127.0.0.1` | app install |
+| `qwen3.5:9b` model | Primary local model | ~6.6 GB |
+| `llama3.1:8b` model | Fallback local model | ~4.9 GB |
+| Browser Use Chromium | Isolated browser binary | Playwright cache |
+| Project `.venv` | Python packages including `browser-use==0.13.6` | hundreds of MB |
+
+## Recommended setup (one command)
+
+Requires Homebrew on macOS. Then:
+
+```bash
+./scripts/bootstrap.sh
+```
+
+That script will, as needed:
+
+1. Install `uv`
+2. Install/start Ollama
+3. Create `.venv` with Python 3.12 and install this package
+4. Run `uvx browser-use install` (Chromium)
+5. `ollama pull` primary + fallback models
+6. Copy `.env.example` → `.env` if missing
+7. Run `./scripts/doctor.sh`
+
+Useful flags:
+
+```bash
+SKIP_MODELS=1 ./scripts/bootstrap.sh   # deps/browser only; pull models later
+SKIP_BROWSER=1 ./scripts/bootstrap.sh  # skip Chromium install
+./scripts/doctor.sh                    # check what’s missing without installing
+./scripts/check_ollama.sh              # API + model list only
+```
+
+### Manual setup (equivalent)
 
 ```bash
 brew install uv
 brew install --cask ollama
+# open Ollama once from Applications
+ollama pull qwen3.5:9b
+ollama pull llama3.1:8b
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -e .
+uvx browser-use install
+cp .env.example .env
+./scripts/doctor.sh
 ```
 
-Open Ollama once from Applications, then configure conservative memory settings:
+Optional Ollama memory tuning (then quit/reopen Ollama):
 
 ```bash
 launchctl setenv OLLAMA_FLASH_ATTENTION 1
@@ -78,30 +126,6 @@ launchctl setenv OLLAMA_KV_CACHE_TYPE q8_0
 launchctl setenv OLLAMA_MAX_LOADED_MODELS 1
 launchctl setenv OLLAMA_NUM_PARALLEL 1
 launchctl setenv OLLAMA_CONTEXT_LENGTH 8192
-```
-
-Quit and reopen Ollama after setting those variables.
-
-Pull models:
-
-```bash
-ollama pull qwen3.5:9b
-ollama pull llama3.1:8b
-```
-
-Verify Ollama:
-
-```bash
-./scripts/check_ollama.sh
-```
-
-Create the project environment:
-
-```bash
-uv venv --python 3.12
-source .venv/bin/activate
-uv pip install -e .
-uvx browser-use install
 ```
 
 ## Environment

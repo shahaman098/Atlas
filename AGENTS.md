@@ -85,6 +85,8 @@ Phased build plan / acceptance criteria: [CURSOR_IMPLEMENTATION_PLAN.md](CURSOR_
 | --- | --- |
 | `main.py` | Smoke-task entrypoint (`example.com` title + heading) |
 | `ollama_runtime.py` | Shared LLM/browser/agent factory, Ollama health + restart, excluded actions |
+| `scripts/bootstrap.sh` | Install machine-local resources (uv, Ollama, venv, Chromium, models) |
+| `scripts/doctor.sh` | Check prerequisites another machine may lack |
 | `scripts/benchmark.py` | Fixed DOM task suite → CSV |
 | `scripts/check_ollama.sh` | Ollama API / model sanity check |
 | `scripts/summarize_benchmark.py` | Success-rate summary for a CSV |
@@ -115,18 +117,19 @@ Configured in `ollama_runtime.py` / `.env.example`:
 
 ## First commands on a new machine
 
+Models, Chromium, Ollama, and `.venv` are **not in git**. On a fresh machine:
+
 ```bash
-brew install uv
-brew install --cask ollama
-ollama pull qwen3.5:9b
-ollama pull llama3.1:8b
-uv venv --python 3.12
-source .venv/bin/activate
-uv pip install -e .
-uvx browser-use install
-./scripts/check_ollama.sh
+# requires Homebrew on macOS
+./scripts/bootstrap.sh
+./scripts/doctor.sh
 uv run python main.py
 ```
+
+`scripts/bootstrap.sh` installs missing local resources (uv, Ollama, venv/deps, Chromium, model pulls).  
+`scripts/doctor.sh` reports what is still missing without installing.
+
+Manual equivalent is documented in README.md.
 
 ## How to extend safely
 
