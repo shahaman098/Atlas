@@ -42,8 +42,12 @@ Create this minimal project structure:
 
 ```text
 .
+├── .cursor/rules/
+│   ├── local-browser-agent.mdc
+│   └── python-runtime.mdc
 ├── .env.example
 ├── .gitignore
+├── AGENTS.md
 ├── README.md
 ├── CURSOR_IMPLEMENTATION_PLAN.md
 ├── main.py
@@ -51,7 +55,8 @@ Create this minimal project structure:
 ├── pyproject.toml
 └── scripts/
     ├── benchmark.py
-    └── check_ollama.sh
+    ├── check_ollama.sh
+    └── summarize_benchmark.py
 ```
 
 Optional after baseline:

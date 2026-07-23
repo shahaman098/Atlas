@@ -1,0 +1,18 @@
+---
+description: Core constraints for the local Browser Use + Ollama agent
+alwaysApply: true
+---
+
+# Local browser agent rules
+
+- Read `AGENTS.md` first for project context on a new machine.
+- Keep DOM-only defaults: `use_vision=False`, one action per step, isolated headless Chromium.
+- Do not connect the user's normal Chrome profile unless explicitly requested.
+- Prefer editing shared runtime via `ollama_runtime.py` (`create_agent`, `create_browser`, `create_llm`).
+- Browser Use `0.13.6`: use `ollama_options={"num_ctx": N, "num_predict": 768}`; never pass `num_ctx=` to `ChatOllama`.
+- Keep `max_history_items` at `6` or higher (library asserts `> 5`).
+- Keep default context at `6144` on 16 GB Macs; treat `8192+` as risky.
+- Every task prompt must include allowed domains and forbidden actions (no submit/download/sign-in; stop; ask for review).
+- Do not add DuckDuckGo/SERP multi-hop tasks without validating local-model reliability.
+- Do not enable payments, credentials, destructive account actions, or unattended high-impact automation.
+- Keep Ollama bound to localhost; restart/unload helpers exist for wedged API states.

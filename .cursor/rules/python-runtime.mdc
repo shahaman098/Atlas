@@ -1,0 +1,14 @@
+---
+description: Python entrypoints and scripts conventions
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python conventions
+
+- Entrypoints: `main.py` (smoke), `scripts/benchmark.py` (suite).
+- Shared factory/helpers belong in `ollama_runtime.py`.
+- Preserve safety defaults from `create_agent` / `create_browser` unless the user asks to change them.
+- Benchmark CSV fields stay stable: `timestamp,model,context_size,task_id,run_number,success,final_result,error,steps`.
+- Catch and record benchmark exceptions; do not crash the whole suite on one failed run.
+- Prefer env overrides already documented in README (`OLLAMA_MODEL`, `OLLAMA_NUM_CTX`, `BENCHMARK_*`).

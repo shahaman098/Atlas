@@ -15,7 +15,16 @@ Python Browser Use agent
 
 DOM-only is the default. Screenshots / vision stay disabled until the baseline benchmark is stable.
 
-Full beginning-to-end plan: [CURSOR_IMPLEMENTATION_PLAN.md](CURSOR_IMPLEMENTATION_PLAN.md).
+## Docs for humans and Cursor agents
+
+| Doc | Purpose |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | **Start here in Cursor** — project context, constraints, layout, lessons learned |
+| [README.md](README.md) | Setup, run, benchmark, troubleshooting |
+| [CURSOR_IMPLEMENTATION_PLAN.md](CURSOR_IMPLEMENTATION_PLAN.md) | Original phased plan and acceptance gate |
+| [.cursor/rules/](.cursor/rules/) | Always-on Cursor rules for this repo |
+
+On a new Cursor machine: clone → open folder → agent should load `AGENTS.md` + `.cursor/rules` automatically.
 
 ## Goals
 
