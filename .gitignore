@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.egg-info/
+.env
+browser_data/
+results/
+*.gif
+.DS_Store
