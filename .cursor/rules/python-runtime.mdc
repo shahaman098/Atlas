@@ -12,3 +12,5 @@ alwaysApply: false
 - Benchmark CSV fields stay stable: `timestamp,model,context_size,task_id,run_number,success,final_result,error,steps`.
 - Catch and record benchmark exceptions; do not crash the whole suite on one failed run.
 - Prefer env overrides already documented in README (`OLLAMA_MODEL`, `OLLAMA_NUM_CTX`, `BENCHMARK_*`).
+- Keep `DEFAULT_MODEL=qwen3.5:9b`, `FALLBACK_MODEL=llama3.1:8b`, `DEFAULT_CONTEXT_SIZE=8192` unless the user asks to change them.
+- `create_llm` must keep Ollama on `http://127.0.0.1:11434`, pass context via `ollama_options` only, and use `ChatOllamaLocal(think=False)` for Qwen3.5.

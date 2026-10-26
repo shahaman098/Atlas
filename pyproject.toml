@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "local-browser-agent"
 version = "0.1.0"
@@ -12,3 +16,5 @@ dependencies = [
 [dependency-groups]
 dev = []
 
+[tool.setuptools]
+py-modules = ["ollama_runtime"]

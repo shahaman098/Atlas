@@ -969,7 +969,7 @@ wheels = [
 [[package]]
 name = "local-browser-agent"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "browser-use" },
     { name = "python-dotenv" },

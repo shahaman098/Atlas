@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build a reproducible local Browser Use automation project for a 16 GB M1 Pro Mac using Ollama-hosted open models.
+Build a reproducible local Browser Use automation project for a 24 GB Apple Silicon Mac using Ollama-hosted open models.
 
 ## End goal
 
@@ -13,7 +13,7 @@ Success looks like: clone → run → constrained task → trusted result, with 
 ## Goals this plan serves
 
 - Own the full local loop: task → DOM state → open model → one action → result.
-- Stay useful on 16 GB unified memory.
+- Stay useful on 24 GB unified memory.
 - Prove reliability with a fixed DOM benchmark before personal workflows or vision.
 - Keep the operator supervised and domain-locked.
 - Preserve an open-model path even if inference later moves to a remote open-weight server.
@@ -37,11 +37,11 @@ The first implementation must be DOM-only. Do not enable screenshots or vision u
 - Do not support autonomous purchasing, payments, deletion, account changes, sign-in, or irreversible actions.
 - Do not expose Ollama outside `127.0.0.1`.
 - Do not make this an unattended production agent before benchmark acceptance.
-- Do not start with high context lengths such as 32K or 64K on the 16 GB machine.
+- Do not start with high context lengths such as 32K or 64K without measuring memory pressure.
 
 ## Target Stack
 
-- macOS on Apple Silicon, 16 GB unified memory.
+- macOS on Apple Silicon, 24 GB unified memory.
 - Python `3.12`.
 - `uv` for project and dependency management.
 - Browser Use pinned to `0.13.6`.
@@ -155,7 +155,7 @@ Create `.env.example`:
 
 ```env
 OLLAMA_MODEL=qwen3.5:9b
-OLLAMA_NUM_CTX=6144
+OLLAMA_NUM_CTX=8192
 AGENT_MAX_STEPS=8
 ```
 
@@ -177,7 +177,7 @@ Requirements:
 - Load `.env` with `python-dotenv`.
 - Use `ChatOllama`.
 - Default model is `qwen3.5:9b`.
-- Default context is `6144` (safer on 16 GB; raise to `8192` only after validating stability).
+- Default context is `8192` on 24 GB (drop to `6144` / `4096` if memory pressure appears).
 - Keep `use_vision=False`.
 - Keep `max_actions_per_step=1`.
 - Keep `max_history_items=6` (library requires `> 5`; 6 is the lowest allowed).
@@ -216,7 +216,7 @@ from browser_use import Agent, ChatOllama
 
 
 DEFAULT_MODEL = "qwen3.5:9b"
-DEFAULT_CONTEXT_SIZE = 6144
+DEFAULT_CONTEXT_SIZE = 8192
 DEFAULT_MAX_STEPS = 8
 
 
@@ -328,7 +328,7 @@ Implementation requirements:
 
 - Default models: `qwen3.5:9b`, `llama3.1:8b`.
 - Default repeats: `3`.
-- Default context: `6144`.
+- Default context: `8192`.
 - Allow overrides using environment variables:
   - `BENCHMARK_MODELS`, comma-separated.
   - `BENCHMARK_TASK_IDS`, comma-separated.
@@ -349,8 +349,8 @@ Do not optimize for speed before correctness.
 Document and support these manual test commands:
 
 ```bash
-OLLAMA_NUM_CTX=6144 uv run python main.py
-OLLAMA_MODEL=llama3.1:8b OLLAMA_NUM_CTX=6144 uv run python main.py
+OLLAMA_NUM_CTX=8192 uv run python main.py
+OLLAMA_MODEL=llama3.1:8b OLLAMA_NUM_CTX=8192 uv run python main.py
 OLLAMA_MODEL=llama3.1:8b OLLAMA_NUM_CTX=4096 uv run python main.py
 ```
 
@@ -396,7 +396,7 @@ max_history_items=6
 Start with:
 
 ```bash
-OLLAMA_MODEL=qwen3.5:9b OLLAMA_NUM_CTX=6144 uv run python main.py
+OLLAMA_MODEL=qwen3.5:9b OLLAMA_NUM_CTX=8192 uv run python main.py
 ```
 
 Do not make vision the default until it passes its own benchmark.
@@ -466,5 +466,5 @@ Cursor should finish by confirming:
 
 If both local models fail the benchmark, keep Browser Use and Chromium local, but move inference to a remote open-weight model served through an OpenAI-compatible endpoint such as vLLM.
 
-This preserves the open-model requirement while avoiding the 16 GB Mac memory ceiling.
+This preserves the open-model requirement while avoiding a local unified-memory ceiling.
 

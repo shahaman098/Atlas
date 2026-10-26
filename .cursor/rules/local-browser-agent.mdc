@@ -7,12 +7,12 @@ alwaysApply: true
 
 ## End goal
 
-Build a personal, local-first, open-model browser agent that reliably completes short supervised web tasks on a 16 GB Apple Silicon Mac without proprietary cloud LLMs or the user's signed-in Chrome profile.
+Build a personal, local-first, open-model browser agent that reliably completes short supervised web tasks on a 24 GB Apple Silicon Mac without proprietary cloud LLMs or the user's signed-in Chrome profile.
 
 ## Current priorities
 
 1. Keep DOM-only baseline reliable (`main.py` smoke + benchmark acceptance ≥12/15).
-2. Preserve 16 GB-safe defaults and Ollama recovery.
+2. Preserve 24 GB defaults (`qwen3.5:9b`, `8192` context) and Ollama recovery.
 3. Keep bootstrap/doctor scripts working so new machines can obtain non-git resources.
 4. Only then add personal domain-locked tasks, optional vision, or remote open-weight inference fallback.
 
@@ -24,7 +24,7 @@ Build a personal, local-first, open-model browser agent that reliably completes 
 - Prefer editing shared runtime via `ollama_runtime.py` (`create_agent`, `create_browser`, `create_llm`).
 - Browser Use `0.13.6`: use `ollama_options={"num_ctx": N, "num_predict": 768}`; never pass `num_ctx=` to `ChatOllama`.
 - Keep `max_history_items` at `6` or higher (library asserts `> 5`).
-- Keep default context at `6144` on 16 GB Macs; treat `8192+` as risky.
+- Keep default context at `8192` on this 24 GB Mac; drop to `6144` / `4096` only if memory pressure appears.
 - Every task prompt must include allowed domains and forbidden actions (no submit/download/sign-in; stop; ask for review).
 - Do not add DuckDuckGo/SERP multi-hop tasks without validating local-model reliability.
 - Do not enable payments, credentials, destructive account actions, or unattended high-impact automation.

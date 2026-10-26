@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Install resources another machine may not have yet.
 # Safe to re-run (idempotent where possible).
+# Homebrew is preferred on macOS but not required if uv + ollama are already present.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,38 +15,63 @@ SKIP_BROWSER="${SKIP_BROWSER:-0}"
 log() { printf '\n==> %s\n' "$*"; }
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+ensure_path() {
+  # Common non-Homebrew install locations used on this machine.
+  export PATH="${HOME}/.local/bin:/Applications/Ollama.app/Contents/Resources:${PATH}"
+}
+
+ensure_path
+
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "This bootstrap currently targets macOS (Ollama app + Apple Silicon path)." >&2
   echo "You can still install uv/Python deps manually on other OSes." >&2
 fi
 
-log "1/7 Homebrew"
-if ! need_cmd brew; then
-  echo "Homebrew is required for the guided macOS install." >&2
-  echo "Install from https://brew.sh then re-run this script." >&2
-  exit 1
+log "1/7 Homebrew (optional)"
+if need_cmd brew; then
+  echo "Using $(brew --prefix)"
+else
+  echo "Homebrew not found — continuing if uv/ollama can be installed another way."
 fi
-echo "Using $(brew --prefix)"
 
 log "2/7 uv"
 if ! need_cmd uv; then
-  brew install uv
-else
-  echo "uv already installed: $(uv --version | head -1)"
+  if need_cmd brew; then
+    brew install uv
+  else
+    echo "Installing uv via https://astral.sh/uv ..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ensure_path
+  fi
 fi
+if ! need_cmd uv; then
+  echo "uv is still not on PATH after install." >&2
+  exit 1
+fi
+echo "uv already available: $(uv --version | head -1)"
 
 log "3/7 Ollama"
 if ! need_cmd ollama; then
-  brew install --cask ollama
-  echo "Opening Ollama once so the local API can start..."
-  open -a Ollama || true
-  sleep 5
-else
-  echo "ollama already installed: $(command -v ollama)"
-  # Ensure the app/API is up
+  if [[ -x "/Applications/Ollama.app/Contents/Resources/ollama" ]]; then
+    mkdir -p "${HOME}/.local/bin"
+    ln -sf "/Applications/Ollama.app/Contents/Resources/ollama" "${HOME}/.local/bin/ollama"
+    ensure_path
+  elif need_cmd brew; then
+    brew install --cask ollama
+  else
+    echo "Ollama CLI not found. Install from https://ollama.com/download then re-run." >&2
+    exit 1
+  fi
+fi
+echo "ollama: $(command -v ollama)"
+
+if ! curl --fail --silent --max-time 2 http://127.0.0.1:11434/api/version >/dev/null; then
+  echo "Starting Ollama..."
+  if [[ -d "/Applications/Ollama.app" ]]; then
+    open "/Applications/Ollama.app" || true
+  fi
   if ! curl --fail --silent --max-time 2 http://127.0.0.1:11434/api/version >/dev/null; then
-    echo "Starting Ollama app..."
-    open -a Ollama || true
+    nohup ollama serve >/tmp/atlas-ollama-serve.log 2>&1 &
   fi
 fi
 
@@ -73,7 +99,7 @@ uv pip install -e .
 
 if [[ "$SKIP_BROWSER" != "1" ]]; then
   log "6/7 Browser Use Chromium"
-  uvx browser-use install
+  uvx --from "browser-use==0.13.6" browser-use install
 else
   log "6/7 Browser Use Chromium (skipped via SKIP_BROWSER=1)"
 fi

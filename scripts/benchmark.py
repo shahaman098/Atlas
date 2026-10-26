@@ -42,11 +42,13 @@ CSV_FIELDS = [
 DEFAULT_MODELS = ("qwen3.5:9b", "llama3.1:8b")
 DEFAULT_REPEATS = 3
 DEFAULT_MAX_STEPS = 12
-DEFAULT_COOLDOWN_SECONDS = 8
+DEFAULT_COOLDOWN_SECONDS = 5
 
 TASKS: dict[str, str] = {
     "1": """
-Open https://example.com and return its title and first visible heading.
+Open https://example.com and return its page title and first visible heading.
+Expected title/heading pattern: Example Domain.
+When both facts are known, call done immediately.
 
 Allowed domains:
 - example.com
@@ -61,7 +63,8 @@ Forbidden actions:
 """.strip(),
     "2": """
 Open https://docs.python.org/3/
-Return only the page title.
+If the page is blank, wait once, then continue.
+Return only the page title on one short line, e.g. "Page title: ...".
 
 Allowed domains:
 - docs.python.org
@@ -90,12 +93,14 @@ Forbidden actions:
 """.strip(),
     "4": """
 Open https://httpbin.org/forms/post
+If you see a blank page or 503/temporary error: wait once, navigate again, then continue.
 Fill these fields only, then stop without submitting:
 - Customer name: Ada Lovelace
 - Telephone: 555-0100
 - E-mail address: ada@example.com
 
 Report which fields you completed. Leave the form unsubmitted.
+If the form still cannot load after one retry, done with success=false and explain.
 
 Allowed domains:
 - httpbin.org

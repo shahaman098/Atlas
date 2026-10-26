@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 
 from dotenv import load_dotenv
 
@@ -13,7 +14,7 @@ from ollama_runtime import (
 )
 
 
-async def main() -> None:
+async def main() -> int:
     load_dotenv()
 
     model = os.getenv("OLLAMA_MODEL", DEFAULT_MODEL)
@@ -25,9 +26,9 @@ async def main() -> None:
     task = """
 Open https://example.com.
 
-Return:
-1. The page title.
-2. The first visible heading.
+Return exactly these two facts, then stop:
+1. Page title (document title) — expected pattern: Example Domain
+2. First visible heading — expected pattern: Example Domain
 
 Allowed domains:
 - example.com
@@ -37,7 +38,7 @@ Forbidden actions:
 - Do not download anything.
 - Do not submit forms.
 - Do not sign in.
-- Stop after completing the requested extraction.
+- Do not keep extracting after you already have both facts — call done.
 - Ask for manual review before irreversible actions.
 """.strip()
 
@@ -48,11 +49,23 @@ Forbidden actions:
     )
 
     history = await agent.run(max_steps=max_steps)
+    successful = bool(history.is_successful())
+    result = history.final_result() or ""
 
     print(f"Model: {model}")
-    print(f"Successful: {history.is_successful()}")
-    print(f"Result: {history.final_result()}")
+    print(f"Context: {context_size}")
+    print(f"Successful: {successful}")
+    print(f"Result: {result}")
+
+    # Soft quality gate for the baseline smoke task.
+    lowered = result.lower()
+    quality_ok = (
+        "example domain" in lowered
+        and ("title" in lowered or "heading" in lowered)
+    )
+    print(f"Quality: {quality_ok}")
+    return 0 if successful and quality_ok else 1
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(asyncio.run(main()))

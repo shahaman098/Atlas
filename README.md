@@ -1,6 +1,6 @@
 # Atlas — Local Browser Use Agent
 
-Personal, local-first browser automation on a 16 GB Apple Silicon Mac using Browser Use + Ollama open models.
+Personal, local-first browser automation on a 24 GB Apple Silicon Mac using Browser Use + Ollama open models.
 
 ## End goal
 
@@ -22,7 +22,7 @@ In practice that means:
 
 - Keep a reproducible clone → install → run path across machines and Cursor sessions.
 - Stay DOM-only (`use_vision=False`) until the baseline is stable.
-- Fit a 16 GB Mac: conservative context, one model loaded, recover when Ollama wedges.
+- Fit a 24 GB Mac: default `8192` context, one model loaded, recover when Ollama wedges.
 - Pass the acceptance gate: **≥12 successful runs out of 15** for the chosen local model, with no form submits, downloads, sign-ins, or uncontrolled navigation.
 - Prefer `qwen3.5:9b`; fall back to `llama3.1:8b` only if measurements say so.
 
@@ -61,34 +61,46 @@ Python Browser Use agent
 
 On a new Cursor machine: clone → open folder → agent should load `AGENTS.md` + `.cursor/rules` automatically.
 
+## Requirements (this machine)
+
+| Item | Value |
+| --- | --- |
+| Hardware target | Apple Silicon Mac, **24 GB** unified memory |
+| Primary model | `qwen3.5:9b` (~6.6 GB) |
+| Fallback model | `llama3.1:8b` (~4.9 GB) |
+| Default context | `8192` (`OLLAMA_NUM_CTX`) |
+| Python | 3.12 via `uv` |
+| Browser Use | pinned `0.13.6` |
+| Ollama API | `http://127.0.0.1:11434` only |
+
 ## Resources another machine needs
 
 These are **not** committed in git (too large / machine-local). A fresh clone must obtain them:
 
 | Resource | Why | Approx size |
 | --- | --- | --- |
-| Homebrew | Installs `uv` + Ollama on macOS | small |
 | `uv` + Python 3.12 | Project env / deps | small |
-| Ollama app + local API | Runs open models on `127.0.0.1` | app install |
+| Ollama app or CLI + local API | Runs open models on `127.0.0.1` | app install |
 | `qwen3.5:9b` model | Primary local model | ~6.6 GB |
 | `llama3.1:8b` model | Fallback local model | ~4.9 GB |
 | Browser Use Chromium | Isolated browser binary | Playwright cache |
 | Project `.venv` | Python packages including `browser-use==0.13.6` | hundreds of MB |
+| Homebrew (optional) | Convenient macOS installer for `uv` / Ollama | small |
 
 ## Recommended setup (one command)
-
-Requires Homebrew on macOS. Then:
 
 ```bash
 ./scripts/bootstrap.sh
 ```
 
+Homebrew helps on a blank macOS machine, but is **not required** if `uv` and `ollama` are already installed (bootstrap can install `uv` via the official installer).
+
 That script will, as needed:
 
-1. Install `uv`
+1. Install `uv` (Homebrew or https://astral.sh/uv)
 2. Install/start Ollama
 3. Create `.venv` with Python 3.12 and install this package
-4. Run `uvx browser-use install` (Chromium)
+4. Run `uvx --from browser-use==0.13.6 browser-use install` (Chromium)
 5. `ollama pull` primary + fallback models
 6. Copy `.env.example` → `.env` if missing
 7. Run `./scripts/doctor.sh`
@@ -105,15 +117,21 @@ SKIP_BROWSER=1 ./scripts/bootstrap.sh  # skip Chromium install
 ### Manual setup (equivalent)
 
 ```bash
+# uv (pick one)
 brew install uv
+# or: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Ollama (pick one)
 brew install --cask ollama
-# open Ollama once from Applications
+# or install from https://ollama.com/download , then:
+# open /Applications/Ollama.app   # or: ollama serve
+
 ollama pull qwen3.5:9b
 ollama pull llama3.1:8b
 uv venv --python 3.12
 source .venv/bin/activate
 uv pip install -e .
-uvx browser-use install
+uvx --from browser-use==0.13.6 browser-use install
 cp .env.example .env
 ./scripts/doctor.sh
 ```
@@ -134,13 +152,33 @@ Copy `.env.example` to `.env` if you want overrides:
 
 ```env
 OLLAMA_MODEL=qwen3.5:9b
-OLLAMA_NUM_CTX=6144
-AGENT_MAX_STEPS=8
+OLLAMA_NUM_CTX=8192
+AGENT_MAX_STEPS=10
 ```
 
-Default context is `6144` on this 16 GB machine. `8192` can wedge Ollama on heavier pages.
+Default context is `8192` on this 24 GB machine. Drop to `6144` / `4096` if Ollama or Chromium shows memory pressure.
+
+Quality extras baked into the runtime:
+- `ChatOllamaLocal(think=False)` so Qwen3.5 does not burn tokens on hidden thinking
+- Empty/`[]` action repair + one schema retry
+- Compact factual `done` answers (title/heading/quote) instead of narration
+- Smoke quality gate in `main.py` / `./scripts/smoke_repeat.sh`
 
 ## Run
+
+One-command (starts Ollama if needed, warms the model, runs the smoke task):
+
+```bash
+./scripts/run.sh
+```
+
+Repeat the smoke task and get a score:
+
+```bash
+./scripts/smoke_repeat.sh 5
+```
+
+Or directly:
 
 ```bash
 uv run python main.py
@@ -158,7 +196,7 @@ If the machine swaps, Ollama disconnects, Chromium tabs detach, or the model loo
 
 ```bash
 # restart Ollama if the API wedges
-killall Ollama; open -a Ollama
+killall Ollama ollama 2>/dev/null; open /Applications/Ollama.app || ollama serve &
 ./scripts/check_ollama.sh
 
 OLLAMA_NUM_CTX=6144 uv run python main.py
@@ -170,7 +208,7 @@ Selection logic:
 
 - Prefer `qwen3.5:9b` when it completes cleanly.
 - Prefer `llama3.1:8b` only if Qwen repeatedly times out, wedges Ollama, or produces malformed actions — and still verify the final answer; Llama can hallucinate off-task content under pressure.
-- Close other heavy apps before benchmarks; a 16 GB Mac can swap hard with Chromium + a 9B model loaded.
+- Close other heavy apps before benchmarks; Chromium + a 9B model still competes for unified memory.
 
 ## Benchmark
 
@@ -187,7 +225,7 @@ BENCHMARK_MODELS=qwen3.5:9b,llama3.1:8b \
 BENCHMARK_TASK_IDS=1,2,3,4,5 \
 BENCHMARK_REPEATS=3 \
 BENCHMARK_COOLDOWN_SECONDS=5 \
-OLLAMA_NUM_CTX=6144 \
+OLLAMA_NUM_CTX=8192 \
 uv run python scripts/benchmark.py
 ```
 
@@ -229,14 +267,17 @@ Initial policy:
 
 | Symptom | What to try |
 | --- | --- |
-| `Connection refused` to Ollama | Open the Ollama app, then run `./scripts/check_ollama.sh`. |
+| `Connection refused` to Ollama | Open `/Applications/Ollama.app` or run `ollama serve`, then `./scripts/check_ollama.sh`. |
 | Model not found | `ollama pull qwen3.5:9b` or `ollama pull llama3.1:8b`. |
-| Slow / swapping on 16 GB | Drop context via the memory reduction ladder; keep only one model loaded. |
-| Ollama API dies mid-run | Restart the Ollama app (`killall Ollama; open -a Ollama`), then `./scripts/check_ollama.sh`. Prefer `OLLAMA_NUM_CTX=6144` or `4096`. |
+| Slow / swapping | Drop context via the memory reduction ladder; keep only one model loaded. |
+| Ollama API dies mid-run | Restart with `killall Ollama ollama`, then open the app or `ollama serve`, then `./scripts/check_ollama.sh`. Prefer `OLLAMA_NUM_CTX=6144` or `4096`. |
 | Chromium tab detach / CDP refused | Memory pressure. Quit other apps, restart Ollama, retry with lower `OLLAMA_NUM_CTX`. |
 | Malformed actions / loops | Keep `max_actions_per_step=1`, shorten the task, or switch to `llama3.1:8b`. |
-| Browser binary missing | Re-run `uvx browser-use install`. |
+| Empty model replies / no actions | Ensure runtime uses `ChatOllamaLocal(think=False)`; Qwen3.5 thinking mode can return blank content. |
+| `ollama pull qwen3.5:9b` EOF | Registry glitch on some networks; retry later or download blobs via registry + write the local manifest (doctor still expects the `qwen3.5:9b` tag). |
+| Browser binary missing | Re-run `uvx --from browser-use==0.13.6 browser-use install`. |
 | Vision enabled early | Do not. Keep `use_vision=False` until DOM-only benchmarks pass. |
+| `doctor` reports Homebrew missing | Safe to ignore if `uv` and `ollama` already work. |
 
 ## Notes
 

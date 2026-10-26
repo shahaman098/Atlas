@@ -4,7 +4,7 @@ This file is the primary onboarding brief for any Cursor (or similar) agent work
 
 ## End goal
 
-Build a **personal, local-first browser automation agent** that can reliably complete short, supervised web tasks on a 16 GB Apple Silicon Mac **without depending on proprietary cloud LLMs**.
+Build a **personal, local-first browser automation agent** that can reliably complete short, supervised web tasks on a 24 GB Apple Silicon Mac **without depending on proprietary cloud LLMs**.
 
 The finished system should let the owner:
 
@@ -24,14 +24,14 @@ This is **not** an unattended general web agent, a shopping bot, or a product th
 
 - Own a working local browser agent loop: task → browser state → model → one action → result.
 - Prefer **open-weight models** (local Ollama first; remote open-weight endpoint only if local models fail the acceptance gate).
-- Stay useful on a **16 GB Mac** without constant swapping or wedging Ollama/Chromium.
+- Stay useful on a **24 GB Mac** without constant swapping or wedging Ollama/Chromium.
 - Make the repo clone-and-run reproducible for the owner across machines and Cursor sessions.
 - Keep the operator in control: supervised runs, explicit domain limits, explicit forbidden actions.
 
 ### Technical goals
 
 - DOM/accessibility-tree first (`use_vision=False`) until the baseline suite is stable.
-- One browser action per step; short history; conservative context (`6144` default).
+- One browser action per step; short history; default context `8192` on 24 GB.
 - Isolated headless Chromium by default (no system Chrome profile yet).
 - Shared runtime factory so agent settings stay consistent (`ollama_runtime.py`).
 - Measurable quality via a fixed benchmark suite and CSV results (target: **≥12/15** successful runs for the chosen model).
@@ -55,7 +55,7 @@ This is **not** an unattended general web agent, a shopping bot, or a product th
 
 ## What this project is today
 
-Local, supervised **Browser Use** automation for Apple Silicon Macs (target: 16 GB) using **Ollama** open models.
+Local, supervised **Browser Use** automation for Apple Silicon Macs (target: 24 GB) using **Ollama** open models.
 
 ```text
 Python Browser Use agent
@@ -97,10 +97,14 @@ Phased build plan / acceptance criteria: [CURSOR_IMPLEMENTATION_PLAN.md](CURSOR_
 
 Configured in `ollama_runtime.py` / `.env.example`:
 
-- Primary model: `qwen3.5:9b`
-- Fallback model: `llama3.1:8b`
-- Default context: `6144` (safer than `8192` on 16 GB)
-- `ollama_options={"num_ctx": ..., "num_predict": 768}` — Browser Use `ChatOllama` has **no** `num_ctx=` kwarg
+- Primary model: `qwen3.5:9b` (`DEFAULT_MODEL` / `OLLAMA_MODEL`)
+- Fallback model: `llama3.1:8b` (`FALLBACK_MODEL` / `OLLAMA_MODEL=llama3.1:8b`)
+- Default context: `8192` (24 GB headroom; drop to `6144` / `4096` if pressure appears)
+- Default max steps: `10` (`AGENT_MAX_STEPS`)
+- LLM host: `http://127.0.0.1:11434` via `create_llm` → `ChatOllama(host=..., ollama_options=...)`
+- `ollama_options={"num_ctx": ..., "num_predict": 1024, "temperature": 0.2, ...}` — Browser Use `ChatOllama` has **no** `num_ctx=` kwarg
+- Agent: `use_vision=False`, `use_thinking=False`
+- LLM wrapper: `ChatOllamaLocal` passes Ollama `think=False` (Qwen3.5 otherwise fills thinking and returns empty content)
 - `max_history_items=6` (library requires `> 5`; 4 is invalid)
 - `flash_mode=True`, `use_judge=False`
 - Headless browser, `enable_default_extensions=False` (bundled uBlock CRX is broken)
@@ -109,11 +113,12 @@ Configured in `ollama_runtime.py` / `.env.example`:
 
 ## Lessons already learned (avoid re-breaking)
 
-1. **`8192` context + heavy pages** can wedge Ollama or detach Chromium CDP on 16 GB. Prefer `6144` / `4096`.
+1. On tighter memory machines, **`8192` context + heavy pages** can wedge Ollama or detach Chromium CDP — drop to `6144` / `4096`. This 24 GB Mac defaults to `8192`.
 2. **DuckDuckGo / multi-hop SERP tasks** caused severe off-task hallucination with 9B models. Current benchmark uses simpler single-site tasks; do not reintroduce SERP hops without evidence.
 3. **Ollama API can die mid-suite** — `wait_for_ollama(restart_if_needed=True)` and `unload_ollama_models()` exist for a reason.
 4. Prefer changing agent settings through **`ollama_runtime.create_agent` / `create_browser` / `create_llm`**, not by duplicating Agent construction in callers.
 5. Every user-facing task string must include allowed domains + forbidden actions (forms / downloads / sign-in / stop / manual review).
+6. **Qwen3.5 often returns `"action": []`** with a filled memory. `ChatOllamaLocal` repairs empty/malformed action arrays (and retries once) before Pydantic validation — do not remove that without a replacement.
 
 ## First commands on a new machine
 
@@ -147,5 +152,5 @@ Manual equivalent is documented in README.md.
 - Closed/proprietary cloud model dependency as the primary path
 - Remote/cloud browser backends
 - Unattended production agents
-- Raising context to 32K/64K on 16 GB machines
+- Raising context to 32K/64K without measuring memory pressure
 - Autonomous purchasing, account takeover, or credential-bearing workflows
